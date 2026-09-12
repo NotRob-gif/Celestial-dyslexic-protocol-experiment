@@ -1,0 +1,34 @@
+# Visual Studio
+.vs/
+x64/
+Debug/
+Release/
+*.user
+*.suo
+*.VC.db
+*.VC.VC.opendb
+
+# Build outputs
+*.obj
+*.exe
+*.pdb
+*.ilk
+*.idb
+*.tlog
+*.lastbuildstate
+*.log
+
+# Local CSPICE / SPICE toolkit files
+cspice/
+kernels/
+*.bsp
+*.tls
+
+# Local test outputs that can be regenerated
+encoded_cover.txt
+recovered.txt
+
+# OS/editor noise
+Thumbs.db
+Desktop.ini
+*.tmp
