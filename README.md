@@ -12,11 +12,87 @@ The project currently focuses on text-based steganography using controlled b/d a
 
 Important: CDP is an experimental steganography project, not a replacement for established cryptography. The planetary inputs are public and are not treated as secret key material.
 
+At a Glance
+
+Item
+
+Current State
+
+Phase 1
+
+Complete — working C++ proof of concept
+
+Phase 2
+
+Complete — automated batch-testing toolkit
+
+Test dataset
+
+100 synthetic cover texts
+
+Main evaluation
+
+500 experiments
+
+Correct-seed recovery
+
+500 / 500
+
+Deterministic repeatability
+
+500 / 500
+
+Wrong-seed rejection
+
+500 / 500
+
+Average full-cover modification
+
+Approximately 2.2%
+
+Current focus
+
+Phase 3 — detection and steganalysis
+
+Planned security layer
+
+Authenticated encryption before CDP embedding
+
+Contents
+
 Project Status
 
-The project is being developed in phases. Phase 1 and Phase 2 are complete, while the later phases are planned research and development work.
+Development Roadmap
 
-Phase 1 — Proof of Concept 
+Quick Start
+
+How Phase 1 Works
+
+Building the Celestial Seed
+
+The Text Steganography Method
+
+Dyslexic Jitter
+
+Phase 2: Testing & Detection Toolkit
+
+500-Experiment Results
+
+Current Research Limitations
+
+Repository Structure
+
+Building the Project
+
+Next Steps
+
+Project Status
+
+The project is being developed in phases. Phase 1 and Phase 2 are complete. Phase 3 is the current next step. Later phases focus on adding standard authenticated encryption and, optionally, post-quantum key establishment.
+
+Phase 1 — Proof of Concept
+
+Status: Complete
 
 Phase 1 established that the basic encode/decode pipeline works.
 
@@ -36,9 +112,11 @@ recover the hidden message using the same seed
 
 demonstrate that changing messageNum changes the final embedding pattern
 
-Phase 2 — Batch Testing & Measurement 
+Phase 2 — Batch Testing & Measurement
 
-Phase 2 expands the project from a single proof-of-concept test into a larger experimental evaluation.
+Status: Complete
+
+Phase 2 expanded the project from a single proof-of-concept test into a larger experimental evaluation.
 
 A separate C++ testing toolkit now performs automated batch experiments across multiple:
 
@@ -101,13 +179,17 @@ Evaluate a standardized post-quantum key-establishment method for securely estab
 The planned security architecture is:
 
 plaintext
-    ↓
+    |
+    v
 authenticated encryption
-    ↓
+    |
+    v
 ciphertext
-    ↓
+    |
+    v
 CDP embedding
-    ↓
+    |
+    v
 carrier text
 
 The responsibilities remain separate:
@@ -153,25 +235,35 @@ How Phase 1 Works
 The current proof-of-concept follows this general process:
 
 NASA/JPL planetary data
-        ↓
+        |
+    v
 CSPICE calculates planetary distances
-        ↓
+        |
+    v
 Two planetary distances are mathematically combined
-        ↓
+        |
+    v
 messageNum is mixed into the result
-        ↓
+        |
+    v
 A deterministic seed is created
-        ↓
+        |
+    v
 The seed shuffles eligible positions in a cover text
-        ↓
+        |
+    v
 A secret message is converted into bits
-        ↓
+        |
+    v
 Bits are embedded using controlled letter substitutions
-        ↓
+        |
+    v
 Encoded cover text is created
-        ↓
+        |
+    v
 The same seed reproduces the same position order
-        ↓
+        |
+    v
 The hidden message is recovered
 
 The important implementation property is that the same agreed-upon inputs reproduce the same position order.
@@ -235,11 +327,13 @@ same cover
 same hidden message
 
 messageNum = 1
-        ↓
+        |
+    v
 Seed A
 
 messageNum = 2
-        ↓
+        |
+    v
 Seed B
 
 Changing messageNum changes the final seed and therefore changes the shuffled embedding positions.
@@ -256,8 +350,8 @@ The Text Steganography Method
 
 The current experiment uses these substitution pairs:
 
-b ↔ d
-p ↔ q
+b <-> d
+p <-> q
 
 The bit mapping is:
 
@@ -284,16 +378,18 @@ on the eligible-position list.
 This gives the program a deterministic shuffled order:
 
 Same seed
-    ↓
+    |
+    v
 Same shuffled positions
 
 Different seed
-    ↓
+    |
+    v
 Different shuffled positions
 
 I refer to this deterministic position-selection behavior as dyslexic jitter.
 
-Plausible-Deniability Design Goal
+Plausible Deniability as a Design Goal
 
 The purpose of dyslexic jitter is not to provide encryption.
 
@@ -306,13 +402,17 @@ This is a design goal, not a proven security guarantee. Phase 3 detection testin
 The planned security model keeps concealment and confidentiality separate:
 
 plaintext
-    ↓
+    |
+    v
 authenticated encryption
-    ↓
+    |
+    v
 ciphertext
-    ↓
+    |
+    v
 CDP / dyslexic jitter
-    ↓
+    |
+    v
 carrier text
 
 In that design:
@@ -522,8 +622,8 @@ Phase 2 also revealed an important weakness.
 
 Because CDP directly substitutes:
 
-b ↔ d
-p ↔ q
+b <-> d
+p <-> q
 
 the resulting text can create malformed words such as:
 
@@ -635,15 +735,20 @@ If confidentiality is added later, I plan to use established encryption rather t
 A future design could look like:
 
 plaintext
-    ↓
+    |
+    v
 optional compression
-    ↓
+    |
+    v
 authenticated encryption
-    ↓
+    |
+    v
 ciphertext
-    ↓
+    |
+    v
 CDP embedding
-    ↓
+    |
+    v
 carrier text
 
 In that design:
@@ -814,11 +919,14 @@ After the detector work establishes a better understanding of CDP's weaknesses, 
 A candidate design is:
 
 plaintext
-    ↓
+    |
+    v
 AES-256-GCM or another established authenticated-encryption scheme
-    ↓
+    |
+    v
 ciphertext
-    ↓
+    |
+    v
 CDP embedding
 
 The encryption key would be managed separately from the public celestial inputs. CDP would remain the steganographic placement and concealment layer rather than being described as encryption.
