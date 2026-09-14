@@ -16,7 +16,7 @@ Project Status
 
 The project is being developed in phases. Phase 1 and Phase 2 are complete, while the later phases are planned research and development work.
 
-Phase 1 — Proof of Concept 
+Phase 1 — Proof of Concept ✅
 
 Phase 1 established that the basic encode/decode pipeline works.
 
@@ -36,7 +36,7 @@ recover the hidden message using the same seed
 
 demonstrate that changing messageNum changes the final embedding pattern
 
-Phase 2 — Batch Testing & Measurement 
+Phase 2 — Batch Testing & Measurement ✅
 
 Phase 2 expands the project from a single proof-of-concept test into a larger experimental evaluation.
 
@@ -70,31 +70,31 @@ Focus
 
 Phase 1 — Proof of Concept
 
- Complete
+✅ Complete
 
 Build the basic CDP encode/decode pipeline and verify deterministic celestial-seed placement.
 
 Phase 2 — Batch Testing & Measurement
 
- Complete
+✅ Complete
 
 Test 100 synthetic covers across 500 experiments and collect reproducible measurements.
 
 Phase 3 — Detection / Steganalysis
 
- Next
+🔜 Next
 
 Build CDP Detector v0.1, add natural-text controls, and measure false-positive and false-negative rates.
 
 Phase 4 — Authenticated Encryption
 
- Planned
+📋 Planned
 
 Encrypt the payload with established authenticated encryption before CDP embedding. AES-256-GCM is a candidate for this layer.
 
 Phase 5 — Optional Post-Quantum Key Establishment
 
- Future research
+🔬 Future research
 
 Evaluate a standardized post-quantum key-establishment method for securely establishing the symmetric encryption key.
 
@@ -292,6 +292,38 @@ Different seed
 Different shuffled positions
 
 I refer to this deterministic position-selection behavior as dyslexic jitter.
+
+Plausible-Deniability Design Goal
+
+The purpose of dyslexic jitter is not to provide encryption.
+
+CDP uses controlled b/d and p/q substitutions to carry hidden bits while varying which eligible positions are used from one message to another. The visible result can resemble ordinary spelling, transcription, or letter-confusion errors rather than an obvious block of encoded data.
+
+One design goal is therefore plausible deniability for the sender: if the carrier text is inspected but the hidden payload is not recognized or successfully extracted, the substitutions may have an ordinary-looking explanation instead of immediately revealing that the text contains a concealed message.
+
+This is a design goal, not a proven security guarantee. Phase 3 detection testing is intended to measure how distinguishable CDP-modified text actually is from normal writing.
+
+The planned security model keeps concealment and confidentiality separate:
+
+plaintext
+    ↓
+authenticated encryption
+    ↓
+ciphertext
+    ↓
+CDP / dyslexic jitter
+    ↓
+carrier text
+
+In that design:
+
+Encryption protects the contents of the hidden message.
+
+CDP hides and distributes the encrypted payload within the carrier text.
+
+Dyslexic jitter changes the placement pattern and gives the visible substitutions a possible non-secret explanation.
+
+If an observer notices only the carrier text and does not identify the hidden channel, they see the altered text. If the CDP payload is extracted but the encryption remains secure, the extracted data should still be ciphertext. If the encryption itself is broken, CDP should not be expected to preserve confidentiality.
 
 Message Format
 
@@ -543,11 +575,13 @@ original human-written samples
 
 multiple writing styles and authors
 
-3. Visible Word Corruption
+3. Visible Letter Substitutions and Plausible Deniability
 
-The current direct letter-substitution method can create obvious spelling errors and malformed words.
+The current direct letter-substitution method can create spelling errors, letter-confusion patterns, and malformed words.
 
-This is likely one of the largest detectability weaknesses in the current design.
+Those visible changes are intentional: part of the CDP concept is that the carrier text may resemble ordinary typing, spelling, or letter-transposition mistakes rather than clearly exposing the presence of a hidden payload. This supports the project's plausible-deniability design goal.
+
+However, that property has not yet been proven. A defensive detector may still be able to distinguish CDP-modified text from normal writing by measuring character distributions, malformed-word rates, or other linguistic features. Phase 3 is intended to test that question directly.
 
 4. Limited Carrier Alphabet
 
@@ -568,9 +602,9 @@ A relatively small payload requires a much larger carrier text.
 
 The current proof of concept focuses on hiding and recovering data.
 
-It does not yet encrypt the payload before embedding.
+It does not yet encrypt the payload before embedding. The celestial seed and dyslexic-jitter layer are not intended to replace encryption.
 
-A future secure architecture should use established authenticated encryption before steganographic embedding.
+A future secure architecture should use established authenticated encryption before steganographic embedding. In that design, an intercepted carrier that does not reveal its hidden channel would still appear as altered text, while a successfully extracted payload should remain protected as ciphertext unless the encryption layer is also compromised.
 
 7. Cross-Platform Reproducibility Has Not Been Proven
 
@@ -787,7 +821,9 @@ ciphertext
     ↓
 CDP embedding
 
-The encryption key would be managed separately from the public celestial inputs. CDP would remain the steganographic placement layer rather than being described as encryption.
+The encryption key would be managed separately from the public celestial inputs. CDP would remain the steganographic placement and concealment layer rather than being described as encryption.
+
+This separation is intentional: the encryption layer is responsible for confidentiality and integrity, while CDP and dyslexic jitter are responsible for hiding and varying the placement of the encrypted payload inside the carrier text. The plausible-deniability aspect remains an experimental design goal that should be evaluated during Phase 3 rather than assumed to be guaranteed.
 
 Phase 5 — Optional Post-Quantum Key Establishment
 
