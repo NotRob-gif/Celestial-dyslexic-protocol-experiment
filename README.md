@@ -4,34 +4,79 @@
 
 This project started as an idea I had while learning more about cybersecurity, steganography, and C++. I wanted to see if I could take something completely unrelated to normal encryption, like planetary distance data, and use it as part of a repeatable way to hide information inside ordinary-looking text.
 
-I am still a student, so I did not start this project expecting to create a new encryption standard or something that is automatically secure. My main goal was to see if the idea could actually work, get more practice coding in C++, learn how to use an external scientific library, and build something that I could test instead of only talking about it on paper.
+I am still a student, so I did not start this project expecting to create a new encryption standard or something that is automatically secure. My goal was to see if the idea could actually work, get more practice coding in C++, learn how to use an external scientific library, and build something I could test instead of only talking about on paper.
 
-The result is a working proof-of-concept that uses NASA/JPL SPICE data to calculate planetary distances, derives a deterministic seed from those distances, and uses that seed to control where hidden data is placed inside a larger piece of text.
+The result is a working proof of concept that uses NASA/JPL SPICE data to calculate planetary distances, derives a deterministic seed from those distances, and uses that seed to control where hidden data is placed inside a larger piece of text.
 
-The project currently focuses on text-based steganography using controlled letter substitutions and a seed-based "dyslexic jitter" system.
+The project currently focuses on text-based steganography using controlled `b/d` and `p/q` substitutions with a deterministic seed-based position shuffling method that I refer to as **dyslexic jitter**.
+
+> **Important:** CDP is an experimental steganography project, not a replacement for established cryptography. The planetary inputs are public and are not treated as secret key material.
+
+---
+
+## Project Status
+
+The project is currently divided into two phases:
+
+### Phase 1 — Proof of Concept
+
+Phase 1 established that the basic encode/decode pipeline works.
+
+The program can:
+
+- calculate real planetary distances using NASA/JPL CSPICE
+- derive a deterministic celestial seed
+- convert a hidden message into binary
+- shuffle eligible carrier positions using the seed
+- embed the message using `b/d` and `p/q` substitutions
+- recover the hidden message using the same seed
+- demonstrate that changing `messageNum` changes the final embedding pattern
+
+### Phase 2 — Testing & Detection Toolkit
+
+Phase 2 expands the project from a single proof-of-concept test into a larger experimental evaluation.
+
+A separate C++ testing toolkit now performs automated batch experiments across multiple:
+
+- cover texts
+- hidden messages
+- payload lengths
+- message numbers
+- UTC dates and times
+- planet pairs
+- celestial seeds
+
+The first large Phase 2 run completed **500 experiments across 100 synthetic cover texts**.
+
+---
 
 ## Quick Start
 
-The repository does **not** include the third-party CSPICE toolkit or the large SPICE kernel files. I added a setup script so the project can prepare those dependencies without hard-coded paths.
+The repository does **not** include the third-party CSPICE toolkit or the large SPICE kernel files. A setup script is included so the project can prepare those dependencies without hard-coded personal paths.
 
 On Windows:
 
-1. Extract or clone the repository.
-2. Double-click `setup_dependencies.bat`.
-3. Wait for the CSPICE toolkit and SPICE kernels to finish downloading. `de440.bsp` is about 114 MB.
+1. Clone or download the repository.
+2. Run `setup_dependencies.bat`.
+3. Wait for CSPICE and the required SPICE kernels to download.
 4. Open `CDP-Experiment.slnx` in Visual Studio.
 5. Build the **x64** configuration.
 6. Run the program.
 
-The setup script downloads the official NAIF/JPL Windows CSPICE package plus `naif0012.tls` and `de440.bsp`, then places them in the relative folders already used by the Visual Studio project. Those downloaded folders stay ignored by Git.
+The setup script downloads the official NAIF/JPL Windows CSPICE package plus:
 
-If Visual Studio asks to retarget the project to an installed C++ toolset, use the toolset installed with your Visual Studio C++ workload.
+- `naif0012.tls`
+- `de440.bsp`
+
+Those downloaded folders are ignored by Git.
+
+If Visual Studio asks to retarget the project to an installed C++ toolset, select the toolset installed with your Visual Studio C++ workload.
 
 ---
 
-## What the Experiment Does
+## How Phase 1 Works
 
-The current version of the program follows this general process:
+The current proof-of-concept follows this general process:
 
 ```text
 NASA/JPL planetary data
@@ -50,40 +95,42 @@ A secret message is converted into bits
         ↓
 Bits are embedded using controlled letter substitutions
         ↓
-encoded_cover.txt is created
+Encoded cover text is created
         ↓
 The same seed reproduces the same position order
         ↓
 The hidden message is recovered
 ```
 
-The important part is that the sender and receiver can independently generate the same seed as long as they use the same agreed-upon inputs.
+The important implementation property is that the same agreed-upon inputs reproduce the same position order.
+
+This is useful for deterministic placement, but it should not be confused with cryptographic secrecy.
 
 ---
 
 ## Why I Used NASA/JPL CSPICE
 
-I wanted the planetary calculations to use real astronomical data instead of made-up numbers.
+I wanted the planetary calculations to use real astronomical data instead of placeholder values.
 
-I downloaded the C version of the NASA/JPL SPICE Toolkit (CSPICE) and linked it to a Visual Studio C++ project.
+I linked the C version of the NASA/JPL SPICE Toolkit (CSPICE) into the Visual Studio C++ project.
 
 The two main kernel files used in the project are:
 
 - `naif0012.tls` — leap-second information
 - `de440.bsp` — planetary ephemeris data
 
-The program loads these kernels and uses CSPICE to calculate the position of a target planet relative to Earth for a specific date and time.
+The program loads these kernels and calculates the position of a target body relative to Earth for a specific date and time.
 
-For example, the program currently uses:
+For the original proof-of-concept test, I used:
 
 ```text
 MARS BARYCENTER
 JUPITER BARYCENTER
 ```
 
-CSPICE first returns the X, Y, and Z position of each body relative to Earth. The program then uses `vnorm_c()` to turn that 3D position into one straight-line distance in kilometers.
+CSPICE returns the X, Y, and Z position components. The program then uses `vnorm_c()` to convert that three-dimensional position vector into one straight-line distance in kilometers.
 
-During one of my tests, the program produced approximately:
+One Phase 1 test produced approximately:
 
 ```text
 Earth to Mars:
@@ -93,15 +140,13 @@ Earth to Jupiter:
 913,875,674.78 km
 ```
 
-This gave me real, repeatable astronomical values to use in the experiment.
-
 ---
 
 ## Building the Celestial Seed
 
-The program currently uses the relationship between two planetary distances to create a starting value.
+The program currently uses the relationship between two planetary distances to create a deterministic starting value.
 
-For the current test, I used the ratio:
+For the original test:
 
 ```text
 Mars distance / Jupiter distance
@@ -110,20 +155,18 @@ Mars distance / Jupiter distance
 The program then:
 
 1. Calculates the ratio between the two distances.
-2. Multiplies the ratio by `1,000,000` so more of the decimal information can be preserved as a usable number.
+2. Multiplies the ratio by `1,000,000`.
 3. Multiplies that value by the primary planet distance.
-4. Reduces the extremely large result into a manageable range using a modulus.
+4. Reduces the result into a manageable numeric range.
 5. XORs the result with `messageNum`.
-
-The last step is important because changing `messageNum` changes the final seed even if the planets and date stay the same.
 
 Example:
 
 ```text
 same planets
 same date
-same cover text
-same secret message
+same cover
+same hidden message
 
 messageNum = 1
         ↓
@@ -134,30 +177,28 @@ messageNum = 2
 Seed B
 ```
 
-This lets the program generate a different embedding pattern for different messages.
+Changing `messageNum` changes the final seed and therefore changes the shuffled embedding positions.
 
-### Important Note
+### Security Note
 
-This planetary value is **not a secret key**.
+The celestial seed is **not a cryptographic key**.
 
-Planetary positions are public information and can be reproduced by someone else using the same ephemeris data.
+Planetary positions are public information and can be reproduced by anyone using the same inputs and ephemeris data.
 
-I am treating this part as an experimental deterministic input / obfuscation mechanism, not as proven cryptographic security.
+I treat the celestial portion as an experimental deterministic input / obfuscation mechanism, not as proven cryptographic security.
 
 ---
 
-## The Text Steganography Part
+## The Text Steganography Method
 
-Once the program creates the celestial seed, it uses that seed to control where hidden information is placed in a larger cover text.
-
-The current experiment uses these letter pairs:
+The current experiment uses these substitution pairs:
 
 ```text
 b ↔ d
 p ↔ q
 ```
 
-The basic bit mapping is:
+The bit mapping is:
 
 ```text
 b = 0
@@ -167,29 +208,15 @@ d = 1
 q = 1
 ```
 
-The program scans the cover text and records every location containing one of those four letters.
+The program scans the cover text and records every position containing one of those four letters.
 
-For example:
-
-```text
-position 14  -> b
-position 33  -> d
-position 51  -> p
-position 89  -> q
-...
-```
-
-Those positions are the possible locations where hidden bits can be stored.
+Those positions become possible locations for hidden bits.
 
 ---
 
 ## Dyslexic Jitter
 
-I did not want the program to always use the first available letter, then the second available letter, then the third, etc.
-
-That would make the embedding pattern much more predictable.
-
-Instead, the program uses the celestial seed with C++'s `std::mt19937_64` pseudorandom number generator.
+Instead of always embedding bits in the first available eligible positions, the program uses the celestial seed with C++'s `std::mt19937_64` pseudorandom number generator.
 
 It then runs:
 
@@ -197,11 +224,9 @@ It then runs:
 std::shuffle(...)
 ```
 
-on the list of eligible positions.
+on the eligible-position list.
 
-This produces a deterministic shuffled order.
-
-That means:
+This gives the program a deterministic shuffled order:
 
 ```text
 Same seed
@@ -213,31 +238,27 @@ Different seed
 Different shuffled positions
 ```
 
-I refer to this position-selection behavior as **dyslexic jitter**.
-
-The actual hidden message is still encoded using the `b/d` and `p/q` substitutions, but the seed determines which eligible locations are used.
+I refer to this deterministic position-selection behavior as **dyslexic jitter**.
 
 ---
 
-## Converting the Secret Message Into Bits
+## Message Format
 
-The secret message is stored in `secret.txt`.
-
-The program reads the entire file, checks that it is between 250 and 500 characters, and converts it into binary.
-
-Every normal text character requires 8 bits.
-
-The program also adds a 32-bit message-length header before the payload.
-
-So the total number of required carrier positions is:
+The hidden message is converted into:
 
 ```text
-32-bit header
-+
-(message characters × 8)
+[32-bit message length][message bytes]
 ```
 
-For the message I tested:
+Each normal message character requires 8 bits.
+
+So the required number of carrier positions is:
+
+```text
+32 + (message characters × 8)
+```
+
+For the original 291-character Phase 1 message:
 
 ```text
 Message characters: 291
@@ -246,128 +267,54 @@ Bits required:       2360
 
 ---
 
-## Cover Text Capacity
+## Phase 1 Capacity Test
 
-The current version can only hide one bit in each eligible `b`, `d`, `p`, or `q` position.
-
-Because of that, the cover text has to be much larger than the hidden message.
-
-For my test cover:
+The original Phase 1 cover contained approximately:
 
 ```text
-Cover length:        90,346 characters
-Eligible positions:  12,679
+Cover length:         90,346 characters
+Eligible positions:   12,679
+Required positions:    2,360
 ```
 
-The 291-character payload required:
-
-```text
-2,360 positions
-```
-
-So the program reported:
+Result:
 
 ```text
 Capacity result: PASS
 ```
 
-This also means the program used only part of the available carrier positions.
-
-That capacity limitation is one of the biggest weaknesses of the current design and something I want to test more in future versions.
+The current system can only store one bit in each eligible `b`, `d`, `p`, or `q` position, so relatively large cover texts are required.
 
 ---
 
-## Encoding Process
+## Phase 1 Jitter Test
 
-The encoder currently works like this:
+I tested whether changing only `messageNum` would produce a different encoded cover.
 
-1. Read `secret.txt`.
-2. Confirm the message is between 250 and 500 characters.
-3. Convert the message length into a 32-bit header.
-4. Convert the message itself into binary.
-5. Read `cover.txt`.
-6. Find every `b`, `d`, `p`, and `q` position.
-7. Verify that the cover has enough eligible positions.
-8. Create the celestial seed.
-9. Shuffle the eligible positions using the seed.
-10. Write each hidden bit into the selected positions.
-11. Save the modified text as:
+Everything else stayed the same:
 
 ```text
-encoded_cover.txt
+same hidden message
+same cover text
+same planets
+same date
 ```
 
----
-
-## Decoding Process
-
-The decoder performs the same setup again.
-
-It:
-
-1. Recreates the same celestial seed.
-2. Finds all eligible positions in the encoded cover.
-3. Shuffles the positions using the same seed.
-4. Reads the first 32 hidden bits.
-5. Reconstructs the message length.
-6. Reads the correct number of payload bits.
-7. Converts the recovered bits back into text.
-8. Saves the recovered message as:
-
-```text
-recovered.txt
-```
-
-The program then compares `recovered.txt` with the original secret message.
-
-My test result was:
-
-```text
-SUCCESS
-Recovered message matches secret.txt exactly.
-```
-
-This was one of the main milestones I wanted to reach because it showed that the process was deterministic and reversible.
-
----
-
-## Jitter Test
-
-After the encoder and decoder worked, I wanted to test whether changing `messageNum` actually changed the embedding pattern.
-
-I ran the exact same experiment twice.
-
-Everything stayed the same:
-
-```text
-Same secret message
-Same cover text
-Same planets
-Same date
-```
-
-The only thing I changed was:
+The only change was:
 
 ```text
 messageNum = 1
 ```
 
-and then:
+versus:
 
 ```text
 messageNum = 2
 ```
 
-I saved both encoded covers:
+The two encoded outputs were then compared character-by-character.
 
-```text
-encoded_cover_msg1.txt
-encoded_cover_msg2.txt
-```
-
-Then I added a comparison function that checked both files character-by-character.
-
-The results were:
+Results:
 
 ```text
 Characters compared: 90,346
@@ -377,159 +324,288 @@ Difference percent:   2.3410%
 RESULT: PASS
 ```
 
-So changing only `messageNum` caused 2,115 positions in the final encoded cover to differ.
+Both versions still recovered the same original hidden message.
 
-Both versions still decoded back to the exact same original 291-character secret message.
-
-That was useful because it showed that changing the seed actually changed the visible embedding pattern instead of only changing a number printed by the program.
+The encoded covers changed 1,159 and 1,166 characters respectively when compared with the original cover. The larger 2,115-position value is the direct comparison between the two encoded outputs.
 
 ---
 
-## Current Test Results
+# Phase 2: Testing & Detection Toolkit
 
-Current proof-of-concept results:
+After completing the first proof of concept, I built a separate C++ testing toolkit to evaluate CDP under a larger number of controlled conditions.
+
+The toolkit is stored in:
 
 ```text
-Secret message size:       291 characters
-Payload bits required:     2,360
-Cover characters:          90,346
-Eligible carrier positions:12,679
-Encoding capacity:         PASS
-Recovered message:         Exact match
-Jitter comparison:         PASS
-Different positions:       2,115
-Cover difference:          2.3410%
+testing-toolkit/
 ```
 
-I also compared each saved encoded cover against the original cover file. In the current test, message #1 changed 1,159 characters and message #2 changed 1,166 characters. The larger 2,115-position difference above is the direct comparison between the two encoded outputs, not the number of characters changed from the original cover.
+The purpose of Phase 2 is not to prove that CDP is secure. It is to measure how the current design behaves, identify weaknesses, and generate data that can later be used for steganalysis and detector development.
 
 ---
 
-## What I Learned Building This
+## Phase 2 Experimental Variables
 
-This project ended up teaching me more than I expected.
+The toolkit varies:
 
-### Using an External C Library in C++
+- cover text
+- hidden message
+- payload length
+- message number
+- UTC date and time
+- planet pair
+- calculated planetary distances
+- celestial seed
 
-CSPICE is written in C, so I had to learn how to link it into a C++ project.
+Each experiment generates a new test message and evaluates a different set of conditions.
 
-That included:
-
-- configuring Visual Studio include directories
-- configuring library directories
-- linking `cspice.lib`
-- using `extern "C"`
-- troubleshooting working directories
-- troubleshooting missing kernel files
-- learning how CSPICE kernel files are loaded
-
-A lot of the early progress was honestly just figuring out why the program could not find a file or why Visual Studio was looking in a different directory than I expected.
-
-That troubleshooting ended up being useful practice by itself.
-
-### Real Data Is Better Than Placeholder Values
-
-Originally, the planetary portion was only an idea on paper.
-
-Using CSPICE forced me to work with actual ephemeris data and made the project much more concrete.
-
-Instead of saying:
+The first large run used:
 
 ```text
-"assume Mars has this value"
+100 synthetic cover texts
+5 runs per cover
+500 total experiments
 ```
 
-the program now actually asks NASA/JPL data where Mars and Jupiter are relative to Earth at a specific time.
-
-### Deterministic Does Not Mean Secret
-
-One of the biggest things I learned is that something can be complicated, repeatable, and interesting without automatically being cryptographically secure.
-
-Planetary data is public.
-
-If someone knows the date, planets, calculation method, and message number, they may be able to reproduce the same values.
-
-That is why I currently describe the celestial portion as experimental obfuscation / deterministic input rather than encryption.
-
-### Capacity Matters
-
-I also learned how quickly payload size becomes a problem in text steganography.
-
-A 291-character message required 2,360 eligible carrier positions.
-
-That means the cover needs to be significantly larger than the hidden message.
-
-This is one reason compression and additional carrier techniques may be worth testing later.
-
-### Testing Is More Useful Than Assuming
-
-At first, it was easy to say things like:
+The synthetic dataset is included under:
 
 ```text
-"changing the seed should change the pattern"
+dataset/synthetic-covers/
 ```
 
-But it was much better to actually save two outputs and compare them.
+---
 
-The comparison showed:
+## Phase 2 Validation Checks
+
+Every experiment performs three major validation checks.
+
+### 1. Correct-Seed Recovery
+
+The encoded message is decoded using the same seed used during embedding.
+
+Expected result:
 
 ```text
-2,115 different positions
+Recovered message = original hidden message
 ```
 
-which gave me an actual measurable result.
+### 2. Deterministic Repeatability
 
-That changed the way I started thinking about the project. I want future changes to be based on measurements instead of assumptions.
+The exact same experiment is encoded again.
+
+Expected result:
+
+```text
+Same inputs = same encoded output
+```
+
+### 3. Wrong-Seed Negative Control
+
+The program intentionally attempts to recover the message using an incorrect seed.
+
+Expected result:
+
+```text
+Wrong seed should not successfully recover the original message
+```
+
+These checks are intended to verify implementation behavior, not cryptographic security.
+
+---
+
+## 500-Experiment Results
+
+The first full Phase 2 batch produced:
+
+```text
+Cover files tested:                  100
+Runs per cover:                        5
+Total experiments:                   500
+
+Correct-seed decode passes:      500 / 500
+Deterministic repeat passes:     500 / 500
+Wrong-seed rejection passes:     500 / 500
+
+Mean cover modification:          2.204685%
+Median cover modification:        2.176294%
+Mean eligible-position change:   27.978514%
+Mean capacity utilization:       55.948578%
+Mean changed words:            1404.080000
+Mean runtime per experiment:      12.305642 ms
+```
+
+The complete CSV results and session summary are stored in:
+
+```text
+results/
+├── phase2_500_experiments.csv
+└── phase2_500_summary.txt
+```
+
+---
+
+## What the 500-Run Test Demonstrated
+
+Under the tested conditions:
+
+- all 500 correct-seed recovery tests passed
+- all 500 deterministic repeat tests passed
+- all 500 wrong-seed negative controls rejected the incorrect seed
+- average cover modification stayed near 2.2%
+- average use of available eligible positions was approximately 56%
+- the testing toolkit successfully generated repeatable experimental data across many different combinations of inputs
+
+These results demonstrate that the current implementation behaved consistently under the tested conditions.
+
+They do **not** establish:
+
+- cryptographic security
+- resistance to steganalysis
+- natural-language stealth
+- cross-platform deterministic compatibility
+- safe real-world communication
+
+---
+
+## Early Detectability Findings
+
+Phase 2 also revealed an important weakness.
+
+Because CDP directly substitutes:
+
+```text
+b ↔ d
+p ↔ q
+```
+
+the resulting text can create malformed words such as:
+
+```text
+comdine
+shoulb
+exqlicit
+```
+
+This suggests that the current version may be detectable using relatively simple linguistic or statistical features.
+
+That is useful research evidence rather than a reason to hide the result. One of the main goals of the next phase is to measure exactly how detectable the current system is.
+
+Potential detector features include:
+
+- `b/d` balance
+- `p/q` balance
+- unusual `q` frequency
+- eligible-character entropy
+- suspicious substitution patterns
+- misspelling rate
+- malformed-word frequency
+- comparison between original and encoded character distributions
+
+---
+
+## Current Research Limitations
+
+### 1. Public Astronomical Data
+
+Planetary values are reproducible and should not be treated as secret cryptographic material.
+
+### 2. Synthetic Dataset
+
+The current 100-cover Phase 2 dataset is synthetic.
+
+That makes it useful for controlled testing, but it is not enough to make strong claims about performance on naturally written text.
+
+Future testing should include:
+
+- public-domain writing
+- openly licensed text
+- original human-written samples
+- multiple writing styles and authors
+
+### 3. Visible Word Corruption
+
+The current direct letter-substitution method can create obvious spelling errors and malformed words.
+
+This is likely one of the largest detectability weaknesses in the current design.
+
+### 4. Limited Carrier Alphabet
+
+Only four letters currently carry data:
+
+```text
+b
+d
+p
+q
+```
+
+This limits capacity and creates concentrated statistical changes.
+
+### 5. Large Cover Requirement
+
+A relatively small payload requires a much larger carrier text.
+
+### 6. No Payload Encryption Yet
+
+The current proof of concept focuses on hiding and recovering data.
+
+It does not yet encrypt the payload before embedding.
+
+A future secure architecture should use established authenticated encryption before steganographic embedding.
+
+### 7. Cross-Platform Reproducibility Has Not Been Proven
+
+The current implementation was developed and tested using Visual Studio on Windows.
+
+The seed is deterministic, but exact `std::shuffle` behavior can depend on the C++ standard-library implementation.
+
+I have not yet demonstrated that two different compilers or standard-library implementations will reproduce the exact same shuffled order.
 
 ---
 
 ## What This Project Is Not
 
-This project is **not** a replacement for real cryptography.
+CDP is not:
 
-It is not currently:
-
-- proven secure
+- a replacement for AES or other established cryptography
+- a proven secure communication system
 - proven undetectable
-- resistant to professional steganalysis
-- a replacement for AES or other established encryption
-- a finished secure communication system
+- proven resistant to professional steganalysis
+- a production-ready security product
 
-The current goal is experimentation and learning.
+The current project is an experimental steganography and testing platform.
 
-The celestial seed controls the embedding pattern, but it does not provide the same protection as a real secret cryptographic key.
+If confidentiality is added later, I plan to use established encryption rather than inventing my own encryption algorithm.
 
-If this project eventually includes actual message confidentiality, I plan to use established encryption rather than inventing my own encryption algorithm.
-
-A future version could look more like:
+A future design could look like:
 
 ```text
 plaintext
-   ↓
-compression
-   ↓
-standard encryption
-   ↓
-encrypted payload
-   ↓
-CDP steganographic embedding
+    ↓
+optional compression
+    ↓
+authenticated encryption
+    ↓
+ciphertext
+    ↓
+CDP embedding
+    ↓
+carrier text
 ```
 
 In that design:
 
 ```text
 Encryption
-= protects what the message says
+= protects the contents of the message
 
 CDP
-= attempts to hide the presence/location of the payload
+= attempts to conceal or obscure where the payload is carried
 ```
 
 ---
 
-## Repository Files
-
-The public repository is intentionally small and keeps the experiment files together so it is easy to follow:
+## Repository Structure
 
 ```text
 .
@@ -544,10 +620,29 @@ The public repository is intentionally small and keeps the experiment files toge
 ├── secret.txt
 ├── cover.txt
 ├── encoded_cover_msg1.txt
-└── encoded_cover_msg2.txt
+├── encoded_cover_msg2.txt
+│
+├── testing-toolkit/
+│   └── Main.cpp
+│
+├── results/
+│   ├── phase2_500_experiments.csv
+│   └── phase2_500_summary.txt
+│
+└── dataset/
+    └── synthetic-covers/
+        └── 100 synthetic cover text files
 ```
 
-`encoded_cover.txt` and `recovered.txt` are generated when the program runs, so I do not keep them in source control. The CSPICE toolkit and SPICE kernels are also downloaded separately and ignored by Git because they are external dependencies, not code I wrote.
+Generated Phase 2 session folders are intentionally not committed.
+
+The `.gitignore` excludes:
+
+```text
+toolkit_results/
+```
+
+along with local Visual Studio build files, CSPICE files, downloaded SPICE kernels, and other reproducible output files.
 
 ---
 
@@ -566,32 +661,31 @@ Current development environment:
 
 ### CSPICE Setup
 
-I do not commit CSPICE or the SPICE kernels to this repository because they are third-party dependencies and `de440.bsp` is larger than GitHub's normal single-file limit.
+CSPICE and the SPICE kernels are not committed to the repository because they are third-party dependencies and `de440.bsp` is larger than GitHub's normal single-file limit.
 
-For Windows, the easiest setup is to run:
+For Windows, run:
 
 ```text
 setup_dependencies.bat
 ```
 
-That script downloads the official 64-bit Windows CSPICE toolkit from NAIF/JPL and places it at:
+The script downloads the 64-bit Windows CSPICE toolkit and places the required files under:
 
 ```text
-cspice/include/SpiceUsr.h
-cspice/lib/cspice.lib
-cspice/lib/csupport.lib
+cspice/include/
+cspice/lib/
 ```
 
-It also downloads the two kernel files used by this experiment:
+It also downloads:
 
 ```text
 kernels/naif0012.tls
 kernels/de440.bsp
 ```
 
-The included Visual Studio project uses those relative paths, which keeps personal Windows paths out of the project. The `cspice/` and `kernels/` folders are ignored by Git.
+The Visual Studio project uses relative paths so personal Windows paths are not required.
 
-The C++ source includes CSPICE using:
+The main C++ source includes CSPICE using:
 
 ```cpp
 extern "C"
@@ -600,114 +694,84 @@ extern "C"
 }
 ```
 
-I use the **x64** build configuration in Visual Studio. The repository intentionally does not provide a Win32/x86 configuration because the automated setup uses the 64-bit Windows CSPICE package.
-
-Official dependency sources used by the setup script:
-
-- NAIF/JPL CSPICE Windows 64-bit package: `https://naif.jpl.nasa.gov/pub/naif/toolkit/C/PC_Windows_VisualC_64bit/packages/cspice.zip`
-- NAIF leap-second kernel: `https://naif.jpl.nasa.gov/pub/naif/generic_kernels/lsk/naif0012.tls`
-- JPL DE440 planetary ephemeris: `https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/de440.bsp`
-
+The current project is built using the **x64** configuration.
 
 ---
 
-## Current Limitations
+## What I Learned
 
-The biggest limitations I see right now are:
-
-### 1. Public Astronomical Data
-
-The celestial values can be reproduced.
-
-They should not be treated as a secret.
-
-### 2. Small Carrier Alphabet
-
-Only four letters currently carry information:
-
-```text
-b
-d
-p
-q
-```
-
-This severely limits capacity.
-
-### 3. Large Cover Requirement
-
-A relatively small hidden message requires a large cover.
-
-### 4. Detectability Has Not Been Properly Tested
-
-The current project proves that the message can be hidden and recovered.
-
-It does **not** prove that an analyst or machine-learning detector would fail to detect the modified text.
-
-That is one of the main questions I still want to study.
-
-### 5. Synthetic Cover Text
-
-My current large cover file was created mainly to test capacity and program behavior.
-
-It should not be used as evidence that the method performs the same way on natural writing.
-
-A better future test would use multiple realistic cover sources and compare results.
-
-### 6. Current Reproducibility Scope
-
-The current prototype was built and tested with Visual Studio on Windows. The seed itself is deterministic, but `std::shuffle` behavior can depend on the C++ standard-library implementation. I have not yet tested whether an encoded file created with a different compiler or standard library will reproduce the exact same shuffled order.
-
----
-
-## Next Steps
-
-The next things I want to work on are:
-
-- automatically count each type of substitution:
-  - `b → d`
-  - `d → b`
-  - `p → q`
-  - `q → p`
-- calculate the percentage of the original cover actually modified
-- test multiple `messageNum` values automatically
-- test different dates
-- test different planet pairs
-- test product, ratio, and difference calculations
-- export experiment results to CSV
-- test different payload sizes
-- test realistic cover text
-- add compression
-- eventually add standard encryption before embedding
-- create a simple detector to measure whether the modified text can be distinguished from normal text
-
----
-
-## Why I Built It
-
-The main reason I built this was curiosity.
-
-I wondered if I could take something like real planetary movement, turn it into a repeatable value, and use that value to control a text-steganography experiment.
-
-I also wanted something that would force me to practice more than basic classroom C++.
-
-This project made me work with:
+This project has given me practice with:
 
 - C++
 - file input/output
-- external libraries
-- Visual Studio configuration
+- external C libraries
+- Visual Studio project configuration
 - binary representation
 - deterministic pseudorandom generation
 - vector manipulation
 - text processing
 - data validation
-- reproducible testing
+- CSV output
+- automated testing
+- negative controls
+- experimental design
 - debugging
-- basic experimental design
+- separating implementation success from security claims
 
-There are still a lot of weaknesses and unanswered questions, but getting the full pipeline working was the first thing I wanted to prove.
+One of the biggest lessons has been that something can be technically interesting and repeatable without automatically being secure.
 
-At this point, the project can take a 250–500 character message, hide it inside a much larger text using a celestial-derived jitter pattern, recover the original message exactly, and demonstrate that changing the message number changes the embedding pattern.
+The testing phase also reinforced that measuring weaknesses is just as important as demonstrating that the program works.
 
-That is enough for me to consider the first proof-of-concept successful, and now I can focus more on measuring where it works, where it fails, and whether the idea has any real research value.
+---
+
+## Next Steps
+
+The next major phase is focused on **detection and stronger experimental controls**.
+
+Planned work includes:
+
+- build **CDP Detector v0.1**
+- compare the 100 original covers against the 500 encoded samples
+- measure false-positive and false-negative rates
+- test `b/d` and `p/q` balance features
+- measure unusual `q` frequency
+- measure eligible-character entropy
+- detect malformed-word and substitution patterns
+- add naturally written control texts
+- compare results across different writing styles
+- improve generated test-message sentence endings
+- investigate alternatives that reduce obvious word corruption
+- test cross-platform reproducibility
+- eventually add authenticated encryption before embedding
+
+For any future encryption layer, the goal is to use established cryptographic standards rather than custom encryption.
+
+---
+
+## Why I Built It
+
+The main reason I built CDP was curiosity.
+
+I wanted to see whether real planetary movement could be turned into a repeatable value and then used to control a text-steganography experiment.
+
+I also wanted a project that would force me to practice more than basic classroom C++.
+
+Phase 1 established that the encode/decode pipeline works.
+
+Phase 2 gave me a larger testing framework and measurable results across 500 experiments.
+
+The next question is no longer just:
+
+```text
+Can the program hide and recover a message?
+```
+
+It is:
+
+```text
+How detectable is the current method,
+under what conditions does it fail,
+and what can those failures teach me?
+```
+
+That is the direction I want to continue researching.

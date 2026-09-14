@@ -1,0 +1,26 @@
+CDP TESTING & DETECTION TOOLKIT
+SESSION SUMMARY
+==========================================
+
+Master random seed: 2672600482584227309
+Cover files tested: 100
+Runs per cover: 5
+Total experiments: 500
+
+Correct-seed decode passes: 500 / 500
+Deterministic repeat passes: 500 / 500
+Wrong-seed rejection passes: 500 / 500
+
+Mean cover modification %: 2.204685
+Median cover modification %: 2.176294
+Mean eligible-position modification %: 27.978514
+Mean capacity use %: 55.948578
+Mean changed words: 1404.080000
+Mean runtime per experiment (ms): 12.305642
+
+NOTES
+------------------------------------------
+The celestial seed method tested here is experimental.
+Public planetary data should not be treated as cryptographic secrecy.
+A PASS means the implementation behaved as expected in this test.
+It does not establish security or undetectability.
