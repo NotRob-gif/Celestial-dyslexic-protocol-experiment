@@ -36,7 +36,7 @@ recover the hidden message using the same seed
 
 demonstrate that changing messageNum changes the final embedding pattern
 
-Phase 2 — Batch Testing & Measurement ✅
+Phase 2 — Batch Testing & Measurement 
 
 Phase 2 expands the project from a single proof-of-concept test into a larger experimental evaluation.
 
@@ -70,31 +70,31 @@ Focus
 
 Phase 1 — Proof of Concept
 
-✅ Complete
+ Complete
 
 Build the basic CDP encode/decode pipeline and verify deterministic celestial-seed placement.
 
 Phase 2 — Batch Testing & Measurement
 
-✅ Complete
+ Complete
 
 Test 100 synthetic covers across 500 experiments and collect reproducible measurements.
 
 Phase 3 — Detection / Steganalysis
 
-🔜 Next
+ Next
 
 Build CDP Detector v0.1, add natural-text controls, and measure false-positive and false-negative rates.
 
 Phase 4 — Authenticated Encryption
 
-📋 Planned
+ Planned
 
 Encrypt the payload with established authenticated encryption before CDP embedding. AES-256-GCM is a candidate for this layer.
 
 Phase 5 — Optional Post-Quantum Key Establishment
 
-🔬 Future research
+ Future research
 
 Evaluate a standardized post-quantum key-establishment method for securely establishing the symmetric encryption key.
 
