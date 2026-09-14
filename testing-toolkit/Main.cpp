@@ -33,6 +33,10 @@ namespace fs = std::filesystem;
 //
 // 1. Recursively discovers every .txt file inside:
 //
+//      <CDP project folder>/dataset/synthetic-covers/
+//
+//    For backward compatibility, it also accepts:
+//
 //      <CDP project folder>/covers/
 //
 // 2. Requires at least 100 cover files.
@@ -2146,7 +2150,7 @@ int main()
             << "Enter your ORIGINAL CDP project folder.\n"
             << "\n"
             << "It must contain:\n"
-            << "  covers/\n"
+            << "  dataset/synthetic-covers/\n"
             << "  kernels/naif0012.tls\n"
             << "  kernels/de440.bsp\n"
             << "\n"
@@ -2176,9 +2180,25 @@ int main()
                 projectInput
             );
 
-        const fs::path coversFolder =
+        // Preferred GitHub repository layout.
+        fs::path coversFolder =
             projectFolder /
-            "covers";
+            "dataset" /
+            "synthetic-covers";
+
+        // Backward compatibility for the original local test layout.
+        if (!fs::exists(coversFolder))
+        {
+            const fs::path legacyCoversFolder =
+                projectFolder /
+                "covers";
+
+            if (fs::exists(legacyCoversFolder))
+            {
+                coversFolder =
+                    legacyCoversFolder;
+            }
+        }
 
         const fs::path leapsecondsKernel =
             projectFolder /
