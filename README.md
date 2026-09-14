@@ -16,7 +16,7 @@ Project Status
 
 The project is being developed in phases. Phase 1 and Phase 2 are complete, while the later phases are planned research and development work.
 
-Phase 1 — Proof of Concept ✅
+Phase 1 — Proof of Concept 
 
 Phase 1 established that the basic encode/decode pipeline works.
 
