@@ -371,12 +371,12 @@ The first full Phase 2 run produced:
 - Repeatability passes: 500 / 500
 - Wrong-seed rejection passes: 500 / 500
 
-- Mean cover modification: 2.204685%
-- Median cover modification: 2.176294%
-- Mean eligible-position change: 27.978514%
-- Mean capacity utilization: 55.948578%
-- Mean changed words: 1,404.080000
-- Mean runtime per experiment: 12.305642 ms
+- Mean cover modification: 2.2%
+- Median cover modification: 2.2%
+- Mean eligible-position change: 27.9%
+- Mean capacity utilization: 55.98%
+- Mean changed words: 1,404.08000
+- Mean runtime per experiment: 12.3 ms
 
 The saved results are stored under:
 
